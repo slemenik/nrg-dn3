@@ -12,38 +12,43 @@ var skeletenonJoints = [
     [15,16],                [19,20]
 ]
 
-function draw() {
-    var renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth/2, window.innerHeight/2);
+var renderer;
+var camera;
+var scene;
+
+function init() {
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth / 2, window.innerHeight / 2);
     document.body.appendChild(renderer.domElement);
 
-    var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 500);
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 50);
     camera.position.set(0, 0, 0);
     camera.lookAt(new THREE.Vector3(0, 0, 1));
 
-    var scene = new THREE.Scene();
+    scene = new THREE.Scene();
+    renderer.render(scene, camera);
+}
 
-    //create a blue LineBasicMaterial
-    var material = new THREE.LineBasicMaterial({ color: 0x0ffffff, linewidth: 200.0});
+function play(){
+    scene = new THREE.Scene();
+    var material = new THREE.LineBasicMaterial({color: 0x0ffffff});
 
-    var animationData = readFile(1,1).split(/\s+/);//temp - 1,1
-    // var temp = animationData.split(/\s+/);
-    // console.log(temp);
+    scenarioNum = document.querySelector('input[name="scenario"]:checked').value;
+    frameCount= document.querySelector('input[name="frames"]:checked').value;
+    var animationData = readFile(scenarioNum,frameCount).split(/\s+/);
 
     for (var i = 0; i < animationData.length/(20*3+1); i++){//each line has (20 joints * 3 coordinates + 1 frame) numbers
         var frameNum = animationData[i+61];
         for (var j = 0; j<skeletenonJoints.length; j++){
-            //j=1;//temp
+
             startIndex = skeletenonJoints[j][0];
             endIndex = skeletenonJoints[j][1];
 
-            console.log(startIndex);
-            console.log(endIndex);
-            x1 = animationData[(i*61)+1+(startIndex-1)*3+0];
+            x1 = animationData[(i*61)+1+(startIndex-1)*3];
             y1 = animationData[(i*61)+1+(startIndex-1)*3+1];
             z1 = animationData[(i*61)+1+(startIndex-1)*3+2];
 
-            x2 = animationData[(i*61)+1+(endIndex-1)*3+0];
+            x2 = animationData[(i*61)+1+(endIndex-1)*3];
             y2 = animationData[(i*61)+1+(endIndex-1)*3+1];
             z2 = animationData[(i*61)+1+(endIndex-1)*3+2];
 
@@ -53,32 +58,17 @@ function draw() {
             console.log(x1,y1,z1,x2,y2,z2);
             var line = new THREE.LineSegments(geometry, material);
             scene.add(line);
-            //break;//temp
         }
-        // if (i > 1 ){
-            break;
-        // }
+        break;//temp
     }
-
-
-    // var geometry = new THREE.Geometry();
-    // geometry.vertices.push(new THREE.Vector3(0.779816, -0.422201, 2.109657));
-    // geometry.vertices.push(new THREE.Vector3(0.838685, -0.791601, 2.023041));
-    //
-    // var line = new THREE.LineSegments(geometry, material);
-    // scene.add(line);
-
-        
     renderer.render(scene, camera);
 }
 
-
 function readFile(scenarioNum, frameCount) {
     var request = new XMLHttpRequest();
-    request.open("GET", "anim_"+ scenarioNum +"_"+ frameCount +".txt", false);
+    request.open("GET", "animations/anim_"+ scenarioNum +"_"+ frameCount +".txt", false);
     request.send(null);
     return request.responseText;
 }
 
-draw();
-
+init();
