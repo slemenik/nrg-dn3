@@ -1,5 +1,4 @@
 
-var jointCount = 20;
 var skeletonJointsConnections = [
                 [4,3],
                 [3,2],
@@ -12,14 +11,14 @@ var skeletonJointsConnections = [
         [14,15],        [18,19],
     [15,16],                [19,20]
 ];
-var fileRowDataCount = (jointCount * 3) + 1;//each line has (20 joints * 3 coordinates + 1 frame) numbers
 
 var renderer;
 var camera;
 var scene;
 
-var animationData;
 var frameIndex;
+var animationId;
+var animationCalculatedData;
 
 function init() {
     renderer = new THREE.WebGLRenderer();
@@ -34,12 +33,15 @@ function init() {
     renderer.render(scene, camera);
 }
 
-
 function play(){
 
     scenarioNum = document.querySelector('input[name="scenario"]:checked').value;
     frameCount= document.querySelector('input[name="frames"]:checked').value;
-    animationData = readFile(scenarioNum,frameCount).split(/\s+/);
+    var animationFileData = readFile(scenarioNum,frameCount).split(/[\r\n]+/);//get rows
+
+    document.getElementById("status").innerHTML = "Calculating...";
+    animationCalculatedData = calculateAnimationData(animationFileData);
+
     frameIndex = 0;
     document.getElementById("status").innerHTML = "Playing...";
     animate();
@@ -52,44 +54,53 @@ function readFile(scenarioNum, frameCount) {
     return request.responseText;
 }
 
-
-var animationId;
-
 function animate() {
     animationId = requestAnimationFrame( animate );
+    if (frameIndex < animationCalculatedData.length){
 
-    if (frameIndex < animationData.length/fileRowDataCount){
         scene = new THREE.Scene();
-        var frameNum = animationData[frameIndex*fileRowDataCount];
         for (var j = 0; j<skeletonJointsConnections.length; j++){
 
-            startIndex = skeletonJointsConnections[j][0];
-            endIndex = skeletonJointsConnections[j][1];
-
-            x1 = animationData[(frameIndex*fileRowDataCount)+1+(startIndex-1)*3];
-            y1 = animationData[(frameIndex*fileRowDataCount)+1+(startIndex-1)*3+1];
-            z1 = animationData[(frameIndex*fileRowDataCount)+1+(startIndex-1)*3+2];
-
-            x2 = animationData[(frameIndex*fileRowDataCount)+1+(endIndex-1)*3];
-            y2 = animationData[(frameIndex*fileRowDataCount)+1+(endIndex-1)*3+1];
-            z2 = animationData[(frameIndex*fileRowDataCount)+1+(endIndex-1)*3+2];
+            var startIndex = skeletonJointsConnections[j][0]-1;
+            var endIndex = skeletonJointsConnections[j][1]-1;
 
             var geometry = new THREE.Geometry();
-            geometry.vertices.push(new THREE.Vector3(x1, y1, z1));
-            geometry.vertices.push(new THREE.Vector3(x2, y2, z2));
-            //console.log(x1,y1,z1,x2,y2,z2);
+            geometry.vertices.push(animationCalculatedData[frameIndex][startIndex]);
+            geometry.vertices.push(animationCalculatedData[frameIndex][endIndex]);
             var material = new THREE.LineBasicMaterial({color: 0x0ffffff});
             var line = new THREE.LineSegments(geometry, material);
             scene.add(line);
         }
         frameIndex++;
         renderer.render(scene, camera);
-    } else{
+
+    } else {
         cancelAnimationFrame(animationId);
         document.getElementById("status").innerHTML = "Finished playing.";
-        console.log("end");
     }
-
-
 }
-init();
+
+function calculateAnimationData(animationFileData) {
+
+    var frameData = [];
+    for (var i = 0; i < animationFileData.length; i++){
+
+        var points = [];
+        var row = animationFileData[i].trim().split(/\s+/);
+        var frameId = row[0];
+
+        for (var j = 1; j<row.length;){//we omit the first number (frame id)
+
+            var point = new THREE.Vector3();
+            point.x = row[j++];
+            point.y = row[j++];
+            point.z = row[j++];
+
+            points.push(point);
+        }
+        frameData.push(points);
+    }
+    return frameData;
+}
+
+
