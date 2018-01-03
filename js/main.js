@@ -35,11 +35,12 @@ function init() {
 
 function play(){
 
-    scenarioNum = document.querySelector('input[name="scenario"]:checked').value;
-    frameCount= document.querySelector('input[name="frames"]:checked').value;
-    var animationFileData = readFile(scenarioNum,frameCount).split(/[\r\n]+/);//get rows
+    var scenarioNum = document.querySelector('input[name="scenario"]:checked').value;
+    var frameCount= document.querySelector('input[name="frames"]:checked').value;
+    var animationFileData = readFile(scenarioNum,frameCount).trim().split(/[\r\n]+/);//get rows
 
     document.getElementById("status").innerHTML = "Calculating...";
+
     animationCalculatedData = calculateAnimationData(animationFileData);
 
     frameIndex = 0;
@@ -54,58 +55,87 @@ function readFile(scenarioNum, frameCount) {
     return request.responseText;
 }
 
+
 function animate() {
     animationId = requestAnimationFrame( animate );
-    if (frameIndex < animationCalculatedData.length){
 
-        scene = new THREE.Scene();
-        for (var j = 0; j<skeletonJointsConnections.length; j++){
+        if (frameIndex < animationCalculatedData.length){
 
-            var startIndex = skeletonJointsConnections[j][0]-1;
-            var endIndex = skeletonJointsConnections[j][1]-1;
+            scene = new THREE.Scene();
+            for (var j = 0; j<skeletonJointsConnections.length; j++){
 
-            var geometry = new THREE.Geometry();
-            geometry.vertices.push(animationCalculatedData[frameIndex][startIndex]);
-            geometry.vertices.push(animationCalculatedData[frameIndex][endIndex]);
-            var material = new THREE.LineBasicMaterial({color: 0x0ffffff});
-            var line = new THREE.LineSegments(geometry, material);
-            scene.add(line);
+                var startIndex = skeletonJointsConnections[j][0]-1;
+                var endIndex = skeletonJointsConnections[j][1]-1;
+
+                var geometry = new THREE.Geometry();
+                geometry.vertices.push(animationCalculatedData[frameIndex][startIndex]);
+                geometry.vertices.push(animationCalculatedData[frameIndex][endIndex]);
+                var material = new THREE.LineBasicMaterial({color: 0x0ffffff});
+                var line = new THREE.LineSegments(geometry, material);
+                scene.add(line);
+            }
+            frameIndex++;
+            renderer.render(scene, camera);
+
+        } else {
+            cancelAnimationFrame(animationId);
+            document.getElementById("status").innerHTML = "Finished playing.";
         }
-        frameIndex++;
-        renderer.render(scene, camera);
-
-    } else {
-        cancelAnimationFrame(animationId);
-        document.getElementById("status").innerHTML = "Finished playing.";
-    }
 }
 
 function calculateAnimationData(animationFileData) {
 
-    var frameData = [];
-    for (var i = 0; i < animationFileData.length; i++){//we ommit first and last frame
-
+    var frames = [];
+    var frameIds = [];
+    for (var i = 0; i<animationFileData.length; i++){
         var points = [];
-        var row = animationFileData[i].trim().split(/\s+/);
-        var frameId = row[0];
-
-        for (var j = 1; j<row.length;){//we omit the first number (frame id)
-
-            var point = new THREE.Vector3();
-            point.x = row[j++];
-            point.y = row[j++];
-            point.z = row[j++];
-
-            points.push(point);
+        var frame = animationFileData[i].trim().split(/\s+/);
+        for (var j = 1; j<frame.length;j+=3){//we omit the first number (frame id), row1.length is same as row2,3,4
+            points.push(new THREE.Vector3(parseFloat(frame[j]), parseFloat(frame[j+1]), parseFloat(frame[j+2])));
         }
-        frameData.push(points);
+        frameIds.push(frame[0]);
+        frames.push(points);
     }
-    return frameData;
+    if (document.querySelector('input[name="interpolation"]:checked').value === "0" ) {
+        return frames;
+    }
+
+    var solution = [];
+    //artificially add first and last keyframe
+    frames.unshift(frames[0]);
+    frames.push(frames[frames.length-1]);
+
+    var jointsCount = (j-1)/3;
+    for (i = 0; i<jointsCount;i++){//last j from previous for keeps number of joints (20)
+        var newKeyFramePoints = [];
+        for (var k = 1; k<frames.length-2;k++){//we omit both artificially added points as well as original last point
+
+            var point0 = frames[k-1][i];
+            var point1 = frames[k][i];
+            var point2 = frames[k+1][i];
+            var point3 = frames[k+2][i];
+            var newFramesNeeded = frameIds[k]-frameIds[k-1]-1;
+
+            if (newFramesNeeded>=1) {
+                var newPoints = catmullRom(point0, point1, point2, point3, newFramesNeeded);
+                newKeyFramePoints = newKeyFramePoints.concat(newPoints);
+            } else {
+                newKeyFramePoints.push(frames[k][i]);
+            }
+        }
+        //add last point
+        newKeyFramePoints.push(frames[k][i]);
+
+        //transpose
+        for (k = 0; k<newKeyFramePoints.length;k++){
+            if (solution[k] == null) solution[k] = [];
+            solution[k].push(newKeyFramePoints[k]);
+        }
+    }
+    return solution;
 }
 
-var alpha = 0.5;//set from 0-1
-
-function catmulRom(p0,p1,p2,p3, amountOfPoints){
+function catmullRom(p0, p1, p2, p3, amountOfPoints){
     var newPoints = [];
 
     var t0 = 0.0;
@@ -113,7 +143,7 @@ function catmulRom(p0,p1,p2,p3, amountOfPoints){
     var t2 = getT(t1, p1, p2);
     var t3 = getT(t2, p2, p3);
 
-    for(var t=t1+((t2-t1)/(amountOfPoints+1)); t<t2; t+=((t2-t1)/(amountOfPoints+1))){
+    for(var t=t1; t<t2; t+=((t2-t1)/(amountOfPoints+1))){
 
         var A1 = (p0.clone().multiplyScalar((t1-t)/(t1-t0))).add(p1.clone().multiplyScalar((t-t0)/(t1-t0)));
         var A2 = (p1.clone().multiplyScalar((t2-t)/(t2-t1))).add(p2.clone().multiplyScalar((t-t1)/(t2-t1)));
@@ -127,15 +157,13 @@ function catmulRom(p0,p1,p2,p3, amountOfPoints){
         newPoints.push(C.clone());
     }
     return newPoints;
-
-
 }
 
 function getT(t, p0, p1) {
+    var alpha = parseFloat(document.getElementById("alpha").value);
     var a = Math.pow((p1.x-p0.x), 2.0) + Math.pow((p1.y-p0.y), 2.0) + Math.pow((p1.z-p0.z), 2.0);
     var b = Math.pow(a, 0.5);
     var c = Math.pow(b, alpha);
 
     return (c + t);
 }
-

@@ -13,7 +13,7 @@
     <script src="js/main.js"></script>
 
     <br>
-
+    <input type="text" id="alpha" value="0.5">
     <button type="button" onclick="play()">Play animation</button><br><br>
     <div id="status" >Choose options and click play!</div><br>
     <div style="display:inline-block;">
@@ -31,6 +31,14 @@
         <input type="radio" name="frames" value="10"> 10<br>
         <input type="radio" name="frames" value="20"> 20<br>
     </div>
+    <div style="display:inline-block;">
+        Catmull-Rom Interpolation: <br>
+        <input checked="true" type="radio" name="interpolation" value="1">Yes<br>
+        <input type="radio" name="interpolation" value="0">No<br>
+
+
+    </div>
+
     <br><br>
 </body>
 </html>
