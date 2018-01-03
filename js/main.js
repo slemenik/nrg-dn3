@@ -83,7 +83,7 @@ function animate() {
 function calculateAnimationData(animationFileData) {
 
     var frameData = [];
-    for (var i = 0; i < animationFileData.length; i++){
+    for (var i = 0; i < animationFileData.length; i++){//we ommit first and last frame
 
         var points = [];
         var row = animationFileData[i].trim().split(/\s+/);
@@ -103,4 +103,39 @@ function calculateAnimationData(animationFileData) {
     return frameData;
 }
 
+var alpha = 0.5;//set from 0-1
+
+function catmulRom(p0,p1,p2,p3, amountOfPoints){
+    var newPoints = [];
+
+    var t0 = 0.0;
+    var t1 = getT(t0, p0, p1);
+    var t2 = getT(t1, p1, p2);
+    var t3 = getT(t2, p2, p3);
+
+    for(var t=t1+((t2-t1)/(amountOfPoints+1)); t<t2; t+=((t2-t1)/(amountOfPoints+1))){
+
+        var A1 = (p0.clone().multiplyScalar((t1-t)/(t1-t0))).add(p1.clone().multiplyScalar((t-t0)/(t1-t0)));
+        var A2 = (p1.clone().multiplyScalar((t2-t)/(t2-t1))).add(p2.clone().multiplyScalar((t-t1)/(t2-t1)));
+        var A3 = (p2.clone().multiplyScalar((t3-t)/(t3-t2))).add(p3.clone().multiplyScalar((t-t2)/(t3-t2)));
+
+        var B1 = (A1.clone().multiplyScalar((t2-t)/(t2-t0))).add(A2.clone().multiplyScalar((t-t0)/(t2-t0)));
+        var B2 = (A2.clone().multiplyScalar((t3-t)/(t3-t1))).add(A3.clone().multiplyScalar((t-t1)/(t3-t1)));
+
+        var C = (B1.clone().multiplyScalar((t2-t)/(t2-t1))).add(B2.clone().multiplyScalar((t-t1)/(t2-t1)));
+
+        newPoints.push(C.clone());
+    }
+    return newPoints;
+
+
+}
+
+function getT(t, p0, p1) {
+    var a = Math.pow((p1.x-p0.x), 2.0) + Math.pow((p1.y-p0.y), 2.0) + Math.pow((p1.z-p0.z), 2.0);
+    var b = Math.pow(a, 0.5);
+    var c = Math.pow(b, alpha);
+
+    return (c + t);
+}
 
