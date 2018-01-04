@@ -37,7 +37,7 @@ function play(){
 
     var scenarioNum = document.querySelector('input[name="scenario"]:checked').value;
     var frameCount= document.querySelector('input[name="frames"]:checked').value;
-    var animationFileData = readFile(scenarioNum,frameCount).trim().split(/[\r\n]+/);//get rows
+    var animationFileData = readFile(scenarioNum,frameCount).trim().split(/[\r\n]+/);
 
     document.getElementById("status").innerHTML = "Calculating...";
 
@@ -86,27 +86,25 @@ function animate() {
 function calculateAnimationData(animationFileData) {
 
     var frames = [];
-    var frameIds = [];
     for (var i = 0; i<animationFileData.length; i++){
         var points = [];
         var frame = animationFileData[i].trim().split(/\s+/);
-        for (var j = 1; j<frame.length;j+=3){//we omit the first number (frame id), row1.length is same as row2,3,4
+        for (var j = 1; j<frame.length;j+=3){//we omit the first number (frame number)
             points.push(new THREE.Vector3(parseFloat(frame[j]), parseFloat(frame[j+1]), parseFloat(frame[j+2])));
         }
-        frameIds.push(frame[0]);
         frames.push(points);
     }
     if (document.querySelector('input[name="interpolation"]:checked').value === "0" ) {
-        return frames;
+        return frames; //without catmull-rom
     }
 
     var solution = [];
-    //artificially add first and last keyframe
+    //artificially add duplicate first and last keyframe
     frames.unshift(frames[0]);
     frames.push(frames[frames.length-1]);
 
-    var jointsCount = (j-1)/3;
-    for (i = 0; i<jointsCount;i++){//last j from previous for keeps number of joints (20)
+    var jointsCount = (j-1)/3; //last j from previous for loop keeps number of columns in row (61)->20 joints
+    for (i = 0; i<jointsCount;i++){
         var newKeyFramePoints = [];
         for (var k = 1; k<frames.length-2;k++){//we omit both artificially added points as well as original last point
 
