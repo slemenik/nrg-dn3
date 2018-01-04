@@ -114,14 +114,10 @@ function calculateAnimationData(animationFileData) {
             var point1 = frames[k][i];
             var point2 = frames[k+1][i];
             var point3 = frames[k+2][i];
-            var newFramesNeeded = frameIds[k]-frameIds[k-1]-1;
+            var newFramesNeeded = parseInt(document.getElementById("frameCount").value);
 
-            if (newFramesNeeded>=1) {
-                var newPoints = catmullRom(point0, point1, point2, point3, newFramesNeeded);
-                newKeyFramePoints = newKeyFramePoints.concat(newPoints);
-            } else {
-                newKeyFramePoints.push(frames[k][i]);
-            }
+            var newPoints = catmullRom(point0, point1, point2, point3, newFramesNeeded);
+            newKeyFramePoints = newKeyFramePoints.concat(newPoints);
         }
         //add last point
         newKeyFramePoints.push(frames[k][i]);
