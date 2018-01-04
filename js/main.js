@@ -136,12 +136,12 @@ function calculateAnimationData(animationFileData) {
 }
 
 function catmullRom(p0, p1, p2, p3, amountOfPoints){
-    var newPoints = [];
 
+    var newPoints = [];
     var t0 = 0.0;
-    var t1 = getT(t0, p0, p1);
-    var t2 = getT(t1, p1, p2);
-    var t3 = getT(t2, p2, p3);
+    var t1 = 1.0;
+    var t2 = 2.0;
+    var t3 = 3.0;
 
     for(var t=t1; t<t2; t+=((t2-t1)/(amountOfPoints+1))){
 
@@ -157,13 +157,4 @@ function catmullRom(p0, p1, p2, p3, amountOfPoints){
         newPoints.push(C.clone());
     }
     return newPoints;
-}
-
-function getT(t, p0, p1) {
-    var alpha = parseFloat(document.getElementById("alpha").value);
-    var a = Math.pow((p1.x-p0.x), 2.0) + Math.pow((p1.y-p0.y), 2.0) + Math.pow((p1.z-p0.z), 2.0);
-    var b = Math.pow(a, 0.5);
-    var c = Math.pow(b, alpha);
-
-    return (c + t);
 }
